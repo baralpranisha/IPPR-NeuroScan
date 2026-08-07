@@ -1,0 +1,57 @@
+{
+  "model_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\brain_tumor_cnn.pt",
+  "metrics_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\metrics.json",
+  "history_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\training_history.json",
+  "dataset_size": 7153,
+  "epochs_completed": 12,
+  "duration_seconds": 9262.87,
+  "accuracy": 0.9767008387698043,
+  "precision": 0.9869791666666666,
+  "recall": 0.9805950840879689,
+  "f1_score": 0.9837767683322518,
+  "confusion_matrix": [
+    [
+      290,
+      10
+    ],
+    [
+      15,
+      758
+    ]
+  ],
+  "classification_report": {
+    "healthy": {
+      "precision": 0.9508196721311475,
+      "recall": 0.9666666666666667,
+      "f1-score": 0.9586776859504132,
+      "support": 300.0
+    },
+    "tumor": {
+      "precision": 0.9869791666666666,
+      "recall": 0.9805950840879689,
+      "f1-score": 0.9837767683322518,
+      "support": 773.0
+    },
+    "accuracy": 0.9767008387698043,
+    "macro avg": {
+      "precision": 0.9688994193989071,
+      "recall": 0.9736308753773177,
+      "f1-score": 0.9712272271413325,
+      "support": 1073.0
+    },
+    "weighted avg": {
+      "precision": 0.9768693359484414,
+      "recall": 0.9767008387698043,
+      "f1-score": 0.9767593175265187,
+      "support": 1073.0
+    }
+  },
+  "support": 1073,
+  "mean_confidence": 0.984988158813505,
+  "device": "cpu",
+  "split_sizes": {
+    "train": 5007,
+    "validation": 1073,
+    "test": 1073
+  }
+}

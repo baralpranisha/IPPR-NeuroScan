@@ -1,0 +1,67 @@
+[
+  {
+    "id": "20260807-161716-ba3d3a47",
+    "timestamp": "2026-08-07T16:17:16",
+    "filename": "dimag.jpg",
+    "label": "healthy",
+    "confidence": 0.9776599407196045,
+    "probabilities": {
+      "healthy": 0.9776599407196045,
+      "tumor": 0.02234002761542797
+    },
+    "image_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-161716-ba3d3a47_input.png",
+    "gradcam_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-161716-ba3d3a47_gradcam.png"
+  },
+  {
+    "id": "20260807-163556-31515fc8",
+    "timestamp": "2026-08-07T16:35:56",
+    "filename": "dimag.jpg",
+    "label": "healthy",
+    "confidence": 0.9776599407196045,
+    "probabilities": {
+      "healthy": 0.9776599407196045,
+      "tumor": 0.02234002761542797
+    },
+    "image_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-163556-31515fc8_input.png",
+    "gradcam_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-163556-31515fc8_gradcam.png"
+  },
+  {
+    "id": "20260807-163716-e0d93deb",
+    "timestamp": "2026-08-07T16:37:16",
+    "filename": "hmm.jpeg",
+    "label": "healthy",
+    "confidence": 0.9974954724311829,
+    "probabilities": {
+      "healthy": 0.9974954724311829,
+      "tumor": 0.002504441887140274
+    },
+    "image_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-163716-e0d93deb_input.png",
+    "gradcam_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-163716-e0d93deb_gradcam.png"
+  },
+  {
+    "id": "20260807-163759-fa7db683",
+    "timestamp": "2026-08-07T16:37:59",
+    "filename": "Screenshot 2026-08-07 163740.png",
+    "label": "tumor",
+    "confidence": 0.892583429813385,
+    "probabilities": {
+      "healthy": 0.10741657763719559,
+      "tumor": 0.892583429813385
+    },
+    "image_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-163759-fa7db683_input.png",
+    "gradcam_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-163759-fa7db683_gradcam.png"
+  },
+  {
+    "id": "20260807-172210-a5551e70",
+    "timestamp": "2026-08-07T17:22:10",
+    "filename": "Screenshot 2026-08-07 163740.png",
+    "label": "tumor",
+    "confidence": 0.9694184064865112,
+    "probabilities": {
+      "healthy": 0.030581627041101456,
+      "tumor": 0.9694184064865112
+    },
+    "image_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-172210-a5551e70_input.png",
+    "gradcam_path": "C:\\Users\\baral\\Downloads\\IPPR project\\NeuroScan_Brain_Tumor_Classifier\\outputs\\history\\20260807-172210-a5551e70_gradcam.png"
+  }
+]
