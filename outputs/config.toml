@@ -1,0 +1,24 @@
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
+address = "0.0.0.0"
+port = 5000
+enableCORS = false
+enableXsrfProtection = false
+enableWebsocketCompression = false
+
+[theme]
+base = "light"
+primaryColor = "#0B3D24"
+backgroundColor = "#FAF6EE"
+secondaryBackgroundColor = "#e7e2d2b7"
+textColor = "#14231A"
+font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#0B3D24"
+secondaryBackgroundColor = "#12492E"
+textColor = "#faf6eebd"
+primaryColor = "#7FC79E"
