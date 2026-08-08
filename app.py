@@ -191,34 +191,33 @@ def _render_home(dataset_dir: Path) -> None:
     with columns[3]:
         _metric_card("Model", "Ready" if DEFAULT_MODEL_PATH.exists() else "Not trained", "The model becomes ready after training.")
     st.divider()
-    left, right = st.columns([1.2, 1])
-    with left:
-        st.markdown("### Project coverage")
-        st.markdown(
-            "- Image input through upload or dataset folder\n"
-            "- Grayscale conversion, median denoising, histogram equalization, and resizing\n"
-            "- CNN feature extraction and binary classification\n"
-            "- Accuracy, precision, recall, F1-score, and confusion matrix\n"
-            "- Saved model, manifests, JSON metrics, curves, and report diagrams"
-        )
-    with right:
-        st.markdown("### Expected Kaggle layout")
-        st.code(
-            "data/brain_tumor_dataset/\n"
-            "├── Brain Tumor/\n"
-            "│   ├── Cancer (1).jpg\n"
-            "│   └── ...\n"
-            "└── Healthy/\n"
-            "    ├── Not Cancer (1).jpg\n"
-            "    └── ...",
-            language="text",
-        )
-        if error:
-            st.info("Add the extracted Kaggle folder or use the Dataset page to upload a ZIP.")
+    st.markdown("### Project coverage")
+    st.markdown(
+        "- Image input through upload or dataset folder\n"
+        "- Grayscale conversion, median denoising, histogram equalization, and resizing\n"
+        "- CNN feature extraction and binary classification\n"
+        "- Accuracy, precision, recall, F1-score, and confusion matrix\n"
+        "- Saved model, manifests, JSON metrics, curves, and report diagrams"
+    )
+    if error:
+        st.info("Add the extracted Kaggle folder or use the Processing Dashboard page to upload a ZIP.")
+
+
+def _render_processing_dashboard(dataset_dir: Path) -> None:
+    st.title("Processing dashboard")
+    st.write(
+        "Dataset preparation and model training in one place — the two stages of the "
+        "preprocessing → training pipeline described in the project report."
+    )
+    tab_dataset, tab_training = st.tabs(["Dataset", "Train model"])
+    with tab_dataset:
+        _render_dataset(dataset_dir)
+    with tab_training:
+        _render_training(dataset_dir)
 
 
 def _render_dataset(dataset_dir: Path) -> None:
-    st.title("Dataset and preprocessing")
+    st.subheader("Dataset and preprocessing")
     st.write(
         "Upload the Kaggle dataset as a ZIP, or point the app at an extracted folder. "
         "The loader supports class folders and the notebook's metadata.csv format."
@@ -260,13 +259,13 @@ def _render_dataset(dataset_dir: Path) -> None:
 
 
 def _render_training(dataset_dir: Path) -> None:
-    st.title("Train the CNN")
+    st.subheader("Train the CNN")
     st.write(
         "Training is deterministic by default. The best validation-loss checkpoint is "
         "restored before test evaluation, then all artifacts are saved in outputs/."
     )
     if not dataset_dir.exists():
-        st.info("Add the dataset on the Dataset page before starting training.")
+        st.info("Add the dataset on the Processing Dashboard page before starting training.")
         return
     total, _, error = _dataset_status(dataset_dir)
     if error:
@@ -314,15 +313,81 @@ def _render_training(dataset_dir: Path) -> None:
         columns[3].metric("F1-score", f"{metrics['f1_score']:.3f}")
 
 
+def _render_previous_uploads() -> None:
+    st.divider()
+    st.markdown("### Previous uploads")
+    records = load_history()
+    if not records:
+        st.caption("No previous predictions yet.")
+        return
+    search = st.text_input("Filter by filename", "", key="prediction_history_search")
+    filtered = [r for r in records if search.lower() in r["filename"].lower()] if search else records
+    filtered = list(reversed(filtered))  # newest first
+
+    tumor_count = sum(1 for record in records if record["label"] == "tumor")
+    summary_columns = st.columns(3)
+    summary_columns[0].metric("Total predictions", len(records))
+    summary_columns[1].metric("Tumor calls", tumor_count)
+    summary_columns[2].metric("Healthy calls", len(records) - tumor_count)
+
+    for record in filtered:
+        header = f"{record['timestamp']} • {record['filename']} • {record['label'].title()} ({record['confidence']:.1%})"
+        with st.expander(header):
+            record_columns = st.columns([1, 1, 1])
+            record_image_path = Path(record["image_path"])
+            if record_image_path.exists():
+                record_columns[0].image(str(record_image_path), caption="Uploaded image", use_container_width=True)
+            gradcam_path = record.get("gradcam_path")
+            if gradcam_path and Path(gradcam_path).exists():
+                record_columns[1].image(str(gradcam_path), caption="Grad-CAM", use_container_width=True)
+            with record_columns[2]:
+                st.metric("Predicted class", record["label"].title(), f"{record['confidence']:.1%} confidence")
+                for class_name, probability in record["probabilities"].items():
+                    st.progress(probability, text=f"{class_name.title()}: {probability:.1%}")
+
+    st.divider()
+    st.markdown("### Export or clear history")
+    export_columns = st.columns(3)
+    with export_columns[0]:
+        st.download_button(
+            "Download history (JSON)",
+            data=json.dumps(records, indent=2),
+            file_name="prediction_history.json",
+            mime="application/json",
+        )
+    with export_columns[1]:
+        csv_lines = ["id,timestamp,filename,label,confidence," + ",".join(CLASS_NAMES)]
+        for record in records:
+            probability_values = ",".join(f"{record['probabilities'].get(name, 0.0):.4f}" for name in CLASS_NAMES)
+            csv_lines.append(
+                f"{record['id']},{record['timestamp']},{record['filename']},"
+                f"{record['label']},{record['confidence']:.4f},{probability_values}"
+            )
+        st.download_button(
+            "Download history (CSV)",
+            data="\n".join(csv_lines),
+            file_name="prediction_history.csv",
+            mime="text/csv",
+        )
+    with export_columns[2]:
+        if st.button("Clear history", type="secondary"):
+            clear_history()
+            st.session_state.pop("last_recorded_prediction_hash", None)
+            st.success("History cleared.")
+            st.rerun()
+
+
 def _render_prediction() -> None:
     st.title("Upload and classify")
     st.write("Upload a single MRI image to run the complete preprocessing and CNN inference path.")
     if not DEFAULT_MODEL_PATH.exists():
         st.info("Train a model first. No prediction is shown until a real checkpoint exists.")
+        _render_previous_uploads()
         return
     uploaded = st.file_uploader("Upload MRI image", type=["jpg", "jpeg", "png", "bmp", "tif", "tiff"])
     if uploaded is None:
         st.info("Supported formats: JPG, JPEG, PNG, BMP, TIFF.")
+        _render_previous_uploads()
         return
     file_bytes = uploaded.getvalue()
     image = Image.open(io.BytesIO(file_bytes))
@@ -369,7 +434,8 @@ def _render_prediction() -> None:
                 "dataset-specific artifacts rather than genuine tumor features."
             )
         st.warning("Prediction is for demonstration and research only; consult a qualified clinician for medical interpretation.")
-    st.caption("This prediction has been saved to the History page.")
+
+    _render_previous_uploads()
 
 
 def _render_results() -> None:
@@ -410,75 +476,6 @@ def _render_results() -> None:
         file_name="metrics.json",
         mime="application/json",
     )
-
-
-def _render_history() -> None:
-    st.title("Prediction history")
-    st.write(
-        "Every image run through Upload & predict, saved locally so you can review, "
-        "search, or export past results — persists across app restarts."
-    )
-    records = load_history()
-    if not records:
-        st.info("No predictions recorded yet. Run one on the Upload & predict page.")
-        return
-
-    tumor_count = sum(1 for record in records if record["label"] == "tumor")
-    columns = st.columns(3)
-    columns[0].metric("Total predictions", len(records))
-    columns[1].metric("Tumor calls", tumor_count)
-    columns[2].metric("Healthy calls", len(records) - tumor_count)
-
-    st.divider()
-    search = st.text_input("Filter by filename", "")
-    filtered = [r for r in records if search.lower() in r["filename"].lower()] if search else records
-    filtered = list(reversed(filtered))  # newest first
-
-    for record in filtered:
-        header = f"{record['timestamp']} • {record['filename']} • {record['label'].title()} ({record['confidence']:.1%})"
-        with st.expander(header):
-            record_columns = st.columns([1, 1, 1])
-            image_path = Path(record["image_path"])
-            if image_path.exists():
-                record_columns[0].image(str(image_path), caption="Uploaded image", use_container_width=True)
-            gradcam_path = record.get("gradcam_path")
-            if gradcam_path and Path(gradcam_path).exists():
-                record_columns[1].image(str(gradcam_path), caption="Grad-CAM", use_container_width=True)
-            with record_columns[2]:
-                st.metric("Predicted class", record["label"].title(), f"{record['confidence']:.1%} confidence")
-                for class_name, probability in record["probabilities"].items():
-                    st.progress(probability, text=f"{class_name.title()}: {probability:.1%}")
-
-    st.divider()
-    st.markdown("### Export or clear")
-    export_columns = st.columns(3)
-    with export_columns[0]:
-        st.download_button(
-            "Download history (JSON)",
-            data=json.dumps(records, indent=2),
-            file_name="prediction_history.json",
-            mime="application/json",
-        )
-    with export_columns[1]:
-        csv_lines = ["id,timestamp,filename,label,confidence," + ",".join(CLASS_NAMES)]
-        for record in records:
-            probability_values = ",".join(f"{record['probabilities'].get(name, 0.0):.4f}" for name in CLASS_NAMES)
-            csv_lines.append(
-                f"{record['id']},{record['timestamp']},{record['filename']},"
-                f"{record['label']},{record['confidence']:.4f},{probability_values}"
-            )
-        st.download_button(
-            "Download history (CSV)",
-            data="\n".join(csv_lines),
-            file_name="prediction_history.csv",
-            mime="text/csv",
-        )
-    with export_columns[2]:
-        if st.button("Clear history", type="secondary"):
-            clear_history()
-            st.session_state.pop("last_recorded_prediction_hash", None)
-            st.success("History cleared.")
-            st.rerun()
 
 
 def _render_report(dataset_dir: Path) -> None:
@@ -527,7 +524,7 @@ def _render_report(dataset_dir: Path) -> None:
         if matrix.exists():
             result_columns[1].image(str(matrix), caption="Confusion matrix", use_container_width=True)
     else:
-        st.info("Train the model on the Train model page to populate performance results.")
+        st.info("Train the model on the Processing Dashboard page to populate performance results.")
 
     st.divider()
     st.markdown("### Download compiled report")
@@ -567,7 +564,7 @@ def main() -> None:
     st.sidebar.caption("IPPR • CNN brain tumor classification")
     page = st.sidebar.radio(
         "Navigate",
-        ["Home", "Dataset", "Train model", "Upload & predict", "History", "Results", "Report"],
+        ["Home", "Processing Dashboard", "Upload & predict", "Results", "Report"],
     )
     st.sidebar.divider()
     st.sidebar.caption("Reference: Kaggle Brain Tumor Dataset / PyTorch CNN notebook")
@@ -576,10 +573,8 @@ def main() -> None:
     ).expanduser()
     pages = {
         "Home": lambda: _render_home(dataset_dir),
-        "Dataset": lambda: _render_dataset(dataset_dir),
-        "Train model": lambda: _render_training(dataset_dir),
+        "Processing Dashboard": lambda: _render_processing_dashboard(dataset_dir),
         "Upload & predict": _render_prediction,
-        "History": _render_history,
         "Results": _render_results,
         "Report": lambda: _render_report(dataset_dir),
     }
