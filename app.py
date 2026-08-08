@@ -88,6 +88,67 @@ def _prettify_filename(path: Path) -> str:
     return path.stem.replace("_", " ").replace("-", " ").strip().title()
 
 
+def _draw_box_diagram(labels: list[str], path: Path) -> None:
+    """Render a simple left-to-right box-and-arrow diagram (flowchart/architecture style)."""
+    from PIL import ImageDraw, ImageFont
+
+    box_w, box_h, gap, margin = 190, 90, 50, 20
+    width = len(labels) * box_w + (len(labels) - 1) * gap + margin * 2
+    height = box_h + margin * 2
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    try:
+        font = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 15
+        )
+    except Exception:  # noqa: BLE001 - fall back if the font file isn't present
+        font = ImageFont.load_default()
+
+    x, y = margin, margin
+    right_edges = []
+    for label in labels:
+        draw.rounded_rectangle(
+            [x, y, x + box_w, y + box_h], radius=12,
+            outline="#2b6cb0", width=3, fill="#ebf4ff",
+        )
+        bbox = draw.textbbox((0, 0), label, font=font)
+        text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        draw.text(
+            (x + (box_w - text_w) / 2, y + (box_h - text_h) / 2),
+            label, fill="#1a365d", font=font,
+        )
+        right_edges.append(x + box_w)
+        x += box_w + gap
+    for edge in right_edges[:-1]:
+        y_mid = y + box_h / 2
+        x1, x2 = edge, edge + gap
+        draw.line([x1, y_mid, x2, y_mid], fill="#2b6cb0", width=3)
+        draw.polygon(
+            [(x2, y_mid), (x2 - 10, y_mid - 6), (x2 - 10, y_mid + 6)],
+            fill="#2b6cb0",
+        )
+    image.save(path)
+
+
+def _ensure_pipeline_diagrams() -> None:
+    """Guarantee the flowchart & architecture diagrams required by the report exist."""
+    diagrams_dir = DEFAULT_OUTPUT_DIR / "diagrams"
+    diagrams_dir.mkdir(parents=True, exist_ok=True)
+    flow_path = diagrams_dir / "00_system_flowchart.png"
+    arch_path = diagrams_dir / "01_architecture_diagram.png"
+    if not flow_path.exists():
+        _draw_box_diagram(
+            ["Input", "Preprocessing", "Feature\nExtraction".replace("\n", " "),
+             "Classification", "Output"],
+            flow_path,
+        )
+    if not arch_path.exists():
+        _draw_box_diagram(
+            ["User Interface", "Processing Engine", "Model", "Result Display"],
+            arch_path,
+        )
+
+
 def _image_to_data_uri(path: Path) -> str:
     ext = path.suffix.lstrip(".").lower()
     mime = "svg+xml" if ext == "svg" else ext
@@ -487,6 +548,52 @@ def _render_report(dataset_dir: Path) -> None:
     total, counts, _ = _dataset_status(dataset_dir)
     metrics = _load_metrics()
 
+    st.divider()
+    st.markdown("## 1. Introduction")
+    st.write(
+        "NeuroScan is an Image Processing and Pattern Recognition (IPPR) course project "
+        "that screens brain MRI scans for signs of a tumor. The system takes an uploaded "
+        "MRI image, runs it through a preprocessing pipeline (grayscale conversion, "
+        "denoising, histogram equalization, and resizing), and passes the result to a "
+        "convolutional neural network (CNN) that classifies the scan as **healthy** or "
+        "**tumor**. A Grad-CAM heatmap is also produced so the region the model relied on "
+        "for its decision can be visually inspected."
+    )
+
+    st.markdown("### 1.1 Problem statement")
+    st.write(
+        "Manual review of MRI scans for tumor indicators is time-consuming and depends "
+        "heavily on radiologist availability and experience. An automated screening aid "
+        "that flags likely tumor cases can speed up triage and reduce manual workload, "
+        "while still leaving final diagnosis to a qualified clinician."
+    )
+
+    st.markdown("### 1.2 Objectives")
+    st.markdown(
+        "- Preprocess MRI images to a consistent, model-ready format\n"
+        "- Extract discriminative features using a CNN\n"
+        "- Classify scans as healthy or tumor with measurable accuracy\n"
+        "- Present results with interpretable visual evidence (Grad-CAM)\n"
+        "- Report standard evaluation metrics (accuracy, precision, recall, F1-score)"
+    )
+
+    st.markdown("### 1.3 Scope and limitations")
+    st.markdown(
+        "- Binary classification only: healthy vs. tumor (no tumor sub-typing)\n"
+        "- Trained and evaluated on a Kaggle brain MRI dataset\n"
+        "- Research/educational prototype — **not** a certified medical device\n"
+        "- Model quality depends on dataset size and balance"
+    )
+
+    st.divider()
+    st.markdown("## 2. Methodology")
+    st.write(
+        "The pipeline follows the standard IPPR flow: **Input → Preprocessing → Feature "
+        "Extraction → Classification → Output**, wrapped in a Streamlit interface that "
+        "connects the upload, processing engine, and trained model to a results display."
+    )
+
+    st.markdown("## 3. System summary")
     columns = st.columns(4)
     columns[0].metric("Dataset images", f"{total:,}")
     columns[1].metric("Model status", "Trained" if metrics else "Not trained")
@@ -495,6 +602,7 @@ def _render_report(dataset_dir: Path) -> None:
 
     st.divider()
     st.markdown("### Architecture & pipeline diagrams")
+    _ensure_pipeline_diagrams()
     diagrams = _diagram_files()
     if diagrams:
         diagram_columns = st.columns(2)
@@ -525,6 +633,25 @@ def _render_report(dataset_dir: Path) -> None:
             result_columns[1].image(str(matrix), caption="Confusion matrix", use_container_width=True)
     else:
         st.info("Train the model on the Processing Dashboard page to populate performance results.")
+
+    st.divider()
+    st.markdown("## 4. Conclusion")
+    if metrics:
+        st.write(
+            f"The trained CNN reached **{metrics['accuracy']:.1%} accuracy** and an "
+            f"**F1-score of {metrics['f1_score']:.3f}** on the held-out test set, showing "
+            "that the preprocessing-plus-CNN pipeline can separate healthy and tumor MRI "
+            "scans reasonably well. Grad-CAM overlays help verify the model is attending "
+            "to brain tissue rather than scan artifacts. As a limitation, performance is "
+            "bounded by dataset size/balance and the model has not been validated "
+            "clinically — future work could add multi-class tumor typing, a larger and "
+            "more diverse dataset, and clinical validation."
+        )
+    else:
+        st.write(
+            "Train the model on the Processing Dashboard page to generate the final "
+            "accuracy/F1-score summary and complete this section."
+        )
 
     st.divider()
     st.markdown("### Download compiled report")
